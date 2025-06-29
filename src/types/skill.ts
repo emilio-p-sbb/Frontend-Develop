@@ -1,17 +1,17 @@
 export interface Skill {
-  id: number;
+  skillId?: number|undefined;
   name: string;
-  level: number; // 0-100
+  proficiencyLevel: number; // 0-100
   category: string;
   yearsOfExperience: number;
+  description?: string;
 }
 
 export interface SkillResponse {
   skillId: number;
   name: string;
-  categoryId: number;
-  proficiencyLevel: string;
+  category: string;
+  proficiencyLevel: number;
   yearsOfExperience: number;
-  percentage: number;
   description: string;
 }

@@ -1,8 +1,19 @@
 export interface Project {
-  id: number;
+  projectId: number;
   title: string;
   description: string;
-  technologies: string[];
+  technologies: string;
+  imageUrl: string;
+  demoUrl?: string;
+  codeUrl?: string;
+  featured: boolean;
+}
+
+export interface ProjectResponse {
+  projectId: number;
+  title: string;
+  description: string;
+  technologies: string;
   imageUrl: string;
   demoUrl?: string;
   codeUrl?: string;

@@ -35,12 +35,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   ];
 
   // Simulasi jumlah pesan belum dibaca
-  const unreadMessages = 3;
+  // const unreadMessages = 3;
 
   return {
-    userName,
     stats,
-    recentActivities,
-    unreadMessages,
+    recentActivities
+    // unreadMessages,
   };
 }

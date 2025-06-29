@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +14,12 @@ import {
 } from "lucide-react";
 
 import { useAdminStore } from "@/stores/adminStore";
-import {
-  archiveMessage,
-  deleteMessage,
-  toggleMessageStarred,
-  unarchiveMessage,
-} from "@/app/admin/messages/action";
+
 import { Message } from "@/types/message";
+import { useUpdateByIdResource } from "@/hooks/private/use-update-resource";
+import { useDeleteResource } from "@/hooks/private/use-delete-resource";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { revalidatePath } from "next/cache";
 
 interface MessageCardProps {
   message: Message;
@@ -28,40 +27,55 @@ interface MessageCardProps {
 }
 
 export default function MessageCard({ message, onClick }: MessageCardProps) {
+
+  const { mutate: updateMessage, isPending: isUpdating } = useUpdateByIdResource<Message>("messages");
+  const deleteOne = useDeleteResource<Message>("messages");
+
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const { unreadMessages, setUnreadMessages } = useAdminStore();
 
   const handleStarClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await toggleMessageStarred(message.id, !message.isStarred);
+      console.log('message.starred = '+message.starred)
+      if(message.starred==true){
+        await updateMessage({id:message.id, path:'unstarred'});
+      }else{
+        await updateMessage({id:message.id, path:'starred'});
+      }
+      // await toggleMessageStarred(message.id, !message.isStarred);
     } catch (error) {
       console.error("Failed to toggle starred status:", error);
     }
   };
 
-  const handleDeleteClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("Are you sure you want to delete this message?")) {
+  const handleDelete = async () => {
+    if (deleteId) {
       try {
-        await deleteMessage(message.id);
-        if (!message.isRead && !message.isArchived) {
+        await deleteOne.mutateAsync(deleteId);
+        if (!message.read) {
           setUnreadMessages(unreadMessages > 0 ? unreadMessages - 1 : 0);
         }
-        alert("Message deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete message:", error);
-        alert("Failed to delete message. Please try again.");
+        revalidatePath('/admin/messages');
+      } catch (err) {
+        console.error(err);
       }
+      setDeleteId(null);
+      setIsDeleteDialogOpen(false);
     }
   };
 
   const handleArchiveClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await archiveMessage(message.id);
-      if (!message.isRead) {
+      await updateMessage({id:message.id, path:'archive'})
+      // await archiveMessage(message.id);
+      if (!message.read) {
         setUnreadMessages(unreadMessages > 0 ? unreadMessages - 1 : 0);
       }
+      revalidatePath('/admin/messages');
       alert("Message archived successfully!");
     } catch (error) {
       console.error("Failed to archive message:", error);
@@ -72,18 +86,20 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
   const handleUnarchiveClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await unarchiveMessage(message.id);
+      // await unarchiveMessage(message.id);
+      await updateMessage({id:message.id, path:'unarchive'})
       alert("Message unarchived successfully!");
     } catch (error) {
       console.error("Failed to unarchive message:", error);
-      alert("Failed to unarchive message. Please try again.");
+      alert("Failed to unarchive message. Please try again.");1
     }
   };
 
   return (
+    <>
     <Card
       className={`cursor-pointer transition-all hover:shadow-md ${
-        !message.isRead && !message.isArchived
+        !message.read && !message.archived
           ? "border-l-4 border-l-portfolio-light-blue bg-blue-50/50"
           : ""
       }`}
@@ -99,7 +115,7 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3
                   className={`font-semibold ${
-                    !message.isRead && !message.isArchived
+                    !message.read && !message.archived
                       ? "text-portfolio-navy"
                       : "text-gray-700"
                   }`}
@@ -109,16 +125,16 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
                 <span className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-none">
                   &lt;{message.email}&gt;
                 </span>
-                {message.isStarred && (
+                {message.starred && (
                   <Star size={16} className="text-yellow-500 fill-current" />
                 )}
-                {!message.isRead && !message.isArchived && (
+                {!message.read && !message.archived && (
                   <div className="w-2 h-2 bg-portfolio-light-blue rounded-full flex-shrink-0" />
                 )}
               </div>
               <p
                 className={`${
-                  !message.isRead && !message.isArchived
+                  !message.read && !message.archived
                     ? "font-medium text-gray-900"
                     : "text-gray-700"
                 } mb-2 text-base`}
@@ -140,7 +156,7 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
                 <Star
                   size={16}
                   className={
-                    message.isStarred
+                    message.starred
                       ? "text-yellow-500 fill-current"
                       : "text-gray-500"
                   }
@@ -149,7 +165,7 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
               <Button variant="ghost" size="sm">
                 <Reply size={16} />
               </Button>
-              {message.isArchived ? (
+              {message.archived ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -162,7 +178,10 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
                   <Archive size={16} className="text-gray-500" />
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={handleDeleteClick}>
+              <Button variant="ghost" size="sm" onClick={() => {
+                              setDeleteId(message.id);
+                              setIsDeleteDialogOpen(true);
+                            }}>
                 <Trash2 size={16} className="text-red-500" />
               </Button>
             </div>
@@ -170,5 +189,20 @@ export default function MessageCard({ message, onClick }: MessageCardProps) {
         </div>
       </CardContent>
     </Card>
+
+    <ConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Education"
+        description={
+          message
+            ? `Delete '${message.subject}' from ${message.email}?`
+            : "Are you sure?"
+        }
+        onConfirm={handleDelete}
+        confirmText="Delete"
+        variant="destructive"
+      />
+    </>
   );
 }

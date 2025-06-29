@@ -14,7 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label"; // Biasanya digunakan bersama Input
 import { Skill } from "@/types/skill";
-import { saveSkill, updateSkill } from "@/app/admin/skills/action";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useCreateResource } from "@/hooks/private/use-create-resource";
+import { Textarea } from "@/components/ui/textarea";
+import { useUpdateResource } from "@/hooks/private/use-update-resource";
 
 // Import Server Actions
 
@@ -24,138 +29,147 @@ interface SkillModalProps {
   onSave?: (skill: Skill) => Promise<void>; // Callback saat data disimpan (dari Client Component parent)
 }
 
+const skillSchema = z.object({
+  skillId: z.number().optional(),
+  name: z.string().min(1, "Skill name is required"),
+  category: z.string().min(1, "Category is required"),
+  proficiencyLevel: z.number().min(0).max(100),
+  yearsOfExperience: z.number().min(0),
+  description: z.string().optional(),
+})
+
+type SkillFormData = z.infer<typeof skillSchema>
+
 export default function SkillModal({ skill, trigger, onSave }: SkillModalProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
+
+  const form = useForm<SkillFormData>({
+    resolver: zodResolver(skillSchema),
+    defaultValues: {
+      name: "",
+      category: "",
+      proficiencyLevel: 50,
+      yearsOfExperience: 0,
+      description: "",
+    },
+  })
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = form
+
+  const { mutate: createSkill, isPending: isCreating } = useCreateResource<Skill>("skills")
+  const { mutate: updateSkill, isPending: isUpdating } = useUpdateResource<Skill>("skills")
+
+
+
   const [formData, setFormData] = useState<Skill>(
     skill || {
-      id: Date.now(), // ID sementara untuk skill baru
+      skillId: 0, // ID sementara untuk skill baru
       name: "",
-      level: 50, // Default level
+      proficiencyLevel: 50, // Default level
       category: "",
       yearsOfExperience: 0,
+      description: "",
     }
   );
 
   useEffect(() => {
-    if (open) { // Reset form saat modal dibuka jika mode tambah baru
-      setFormData(
-        skill || {
-          id: Date.now(),
+    if (open) {
+      reset(
+        skill ?? {
           name: "",
-          level: 50,
           category: "",
+          proficiencyLevel: 50,
           yearsOfExperience: 0,
+          description: "",
         }
-      );
+      )
     }
-  }, [open, skill]);
+  }, [open, skill, reset])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [id]: type === "number" ? parseInt(value, 10) : value,
-    }));
-  };
-
-  const handleSave = async () => {
-    // Validasi sederhana
-    if (!formData.name || !formData.category || formData.level === undefined || formData.yearsOfExperience === undefined) {
-      alert("Please fill in all required fields: Skill Name, Category, Proficiency Level, and Years of Experience.");
-      return;
+  const onSubmit = (data: SkillFormData) => {
+    if (skill) {
+      updateSkill({ ...data, skillId: skill.skillId }, {
+        onSuccess: () => {
+          setOpen(false)
+          onSave?.({ ...data, skillId: skill.skillId })
+        },
+      })
+    } else {
+      createSkill(data, {
+        onSuccess: () => {
+          setOpen(false)
+          onSave?.({ ...data, skillId: Date.now() }) // ID dummy
+        },
+      })
     }
-    if (formData.level < 0 || formData.level > 100) {
-      alert("Proficiency Level must be between 0 and 100.");
-      return;
-    }
-    if (formData.yearsOfExperience < 0) {
-      alert("Years of Experience cannot be negative.");
-      return;
-    }
-
-    try {
-      if (skill) { // Mode edit
-        if (onSave) {
-          await onSave(formData); // Panggil onSave prop dari parent (SkillList)
-        } else {
-          // Fallback jika onSave tidak diberikan (tidak seharusnya terjadi untuk edit)
-          await updateSkill(formData);
-          alert("Skill updated successfully!");
-        }
-      } else { // Mode tambah baru
-        const { id, ...dataToSave } = formData; // Hapus ID sementara
-        await saveSkill(dataToSave as Omit<Skill, 'id'>);
-        alert("New skill added successfully!");
-        if (onSave) { // Jika ada onSave prop untuk Add New (misalnya dari page.tsx, meski sudah dihapus)
-            onSave(formData);
-        }
-      }
-      setOpen(false);
-    } catch (error) {
-      console.error("Failed to save skill:", error);
-      alert("Failed to save skill. Please try again.");
-    }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* Kloning trigger untuk menambahkan event handler onClick */}
-      {React.cloneElement(trigger as React.ReactElement, { onClick: () => setOpen(true) })}
+      {React.cloneElement(trigger as React.ReactElement, {
+        onClick: () => setOpen(true),
+      })}
 
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {skill ? "Edit Skill" : "Add New Skill"}
-          </DialogTitle>
+          <DialogTitle>{skill ? "Edit Skill" : "Add New Skill"}</DialogTitle>
           <DialogDescription>
             Enter the details for this skill. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Skill Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="e.g., Java"
-            />
+            <Input id="name" {...register("name")} placeholder="e.g., Java" />
+            {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={handleInputChange}
-              placeholder="e.g., Programming Languages"
-            />
+            <Input id="category" {...register("category")} placeholder="e.g., Programming Languages" />
+            {errors.category && <p className="text-sm text-red-500">{errors.category.message}</p>}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="level">Proficiency Level (0-100)</Label>
-            <Input
-              id="level"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.level}
-              onChange={handleInputChange}
-            />
+            <Input type="number" id="level" {...register("proficiencyLevel", { valueAsNumber: true })} />
+            {errors.proficiencyLevel && <p className="text-sm text-red-500">{errors.proficiencyLevel.message}</p>}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="yearsOfExperience">Years of Experience</Label>
-            <Input
-              id="yearsOfExperience"
-              type="number"
-              min="0"
-              value={formData.yearsOfExperience}
-              onChange={handleInputChange}
-            />
+            <Input type="number" id="yearsOfExperience" {...register("yearsOfExperience", { valueAsNumber: true })} />
+            {errors.yearsOfExperience && <p className="text-sm text-red-500">{errors.yearsOfExperience.message}</p>}
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Skill</Button>
-        </DialogFooter>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              {...register("description")}
+              placeholder="Optional description about the skill"
+              className="min-h-[100px] resize-y"
+            />
+            {errors.description && (
+              <p className="text-sm text-red-500">{errors.description.message}</p>
+            )}
+          </div>
+
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isCreating}>
+              {isCreating ? "Saving..." : "Save Skill"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

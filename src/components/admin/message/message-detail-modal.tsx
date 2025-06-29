@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,14 +22,10 @@ import {
 
 import { useAdminStore } from "@/stores/adminStore";
 import { Message } from "@/types/message";
-import {
-  archiveMessage,
-  deleteMessage,
-  markMessageAsRead,
-  markMessageAsUnread,
-  toggleMessageStarred,
-  unarchiveMessage,
-} from "@/app/admin/messages/action";
+import { useUpdateByIdResource } from "@/hooks/private/use-update-resource";
+import { useDeleteResource } from "@/hooks/private/use-delete-resource";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { revalidatePath } from "next/cache";
 
 interface MessageDetailModalProps {
   message: Message;
@@ -42,18 +38,33 @@ export default function MessageDetailModal({
   open,
   onOpenChange,
 }: MessageDetailModalProps) {
+
+//useUpdateByIdResource
+  const { mutate: updateMessage, isPending: isUpdating } = useUpdateByIdResource<Message>("messages");
+  const deleteOne = useDeleteResource<Message>("messages");
+
   const { unreadMessages, setUnreadMessages } = useAdminStore();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (open && !message.isRead) {
-      markMessageAsRead(message.id);
+    if (open && !message.read) {
+      updateMessage({id:message.id, path:'read'})
+      // markMessageAsRead(message.id);
       setUnreadMessages(unreadMessages > 0 ? unreadMessages - 1 : 0);
     }
   }, [open, message, unreadMessages, setUnreadMessages]);
 
   const handleToggleStarred = async () => {
     try {
-      await toggleMessageStarred(message.id, !message.isStarred);
+      // await toggleMessageStarred(message.id, !message.starred);
+      console.log('message.starred = '+message.starred)
+      if(message.starred==true){
+        await updateMessage({id:message.id, path:'unstarred'});
+      }else{
+        await updateMessage({id:message.id, path:'starred'});
+      }
+      
     } catch (error) {
       console.error("Failed to toggle starred status:", error);
     }
@@ -61,8 +72,9 @@ export default function MessageDetailModal({
 
   const handleArchive = async () => {
     try {
-      await archiveMessage(message.id);
-      if (!message.isRead) {
+      await updateMessage({id:message.id, path:'archive'})
+      // await archiveMessage(message.id);
+      if (!message.read) {
         setUnreadMessages(unreadMessages > 0 ? unreadMessages - 1 : 0);
       }
       onOpenChange(false);
@@ -73,7 +85,8 @@ export default function MessageDetailModal({
 
   const handleUnarchive = async () => {
     try {
-      await unarchiveMessage(message.id);
+      await updateMessage({id:message.id, path:'unarchive'})
+      // await unarchiveMessage(message.id);
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to unarchive message:", error);
@@ -81,22 +94,24 @@ export default function MessageDetailModal({
   };
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this message permanently?")) {
+    if (deleteId) {
       try {
-        await deleteMessage(message.id);
-        if (!message.isRead) {
+        await deleteOne.mutateAsync(deleteId);
+        if (!message.read) {
           setUnreadMessages(unreadMessages > 0 ? unreadMessages - 1 : 0);
         }
-        onOpenChange(false);
-      } catch (error) {
-        console.error("Failed to delete message:", error);
+      } catch (err) {
+        console.error(err);
       }
+      setDeleteId(null);
+      setIsDeleteDialogOpen(false);
     }
   };
 
   const handleMarkUnread = async () => {
     try {
-      await markMessageAsUnread(message.id);
+      await updateMessage({id:message.id, path:'unread'});
+      // await markMessageAsUnread(message.id);
       setUnreadMessages(unreadMessages + 1);
       onOpenChange(false);
     } catch (error) {
@@ -105,6 +120,7 @@ export default function MessageDetailModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -134,7 +150,7 @@ export default function MessageDetailModal({
             variant="outline"
             size="sm"
             onClick={handleMarkUnread}
-            disabled={!message.isRead}
+            disabled={!message.read}
           >
             <MailOpen size={16} className="mr-2" /> Mark as Unread
           </Button>
@@ -142,12 +158,12 @@ export default function MessageDetailModal({
             <Star
               size={16}
               className={`mr-2 ${
-                message.isStarred ? "text-yellow-500 fill-current" : ""
+                message.starred ? "text-yellow-500 fill-current" : ""
               }`}
             />
-            {message.isStarred ? "Unstar" : "Star"}
+            {message.starred ? "Unstar" : "Star"}
           </Button>
-          {message.isArchived ? (
+          {message.archived ? (
             <Button variant="outline" size="sm" onClick={handleUnarchive}>
               <FolderOpen size={16} className="mr-2" /> Unarchive
             </Button>
@@ -156,7 +172,10 @@ export default function MessageDetailModal({
               <Archive size={16} className="mr-2" /> Archive
             </Button>
           )}
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
+          <Button variant="destructive" size="sm" onClick={() => {
+                              setDeleteId(message.id);
+                              setIsDeleteDialogOpen(true);
+                            }}>
             <Trash2 size={16} className="mr-2" /> Delete
           </Button>
           <Button size="sm">
@@ -165,5 +184,20 @@ export default function MessageDetailModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmationDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            title="Delete Education"
+            description={
+              message
+                ? `Delete '${message.subject}' from ${message.email}?`
+                : "Are you sure?"
+            }
+            onConfirm={handleDelete}
+            confirmText="Delete"
+            variant="destructive"
+          />
+    </>
   );
 }

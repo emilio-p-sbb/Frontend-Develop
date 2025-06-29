@@ -7,12 +7,12 @@ import { getDashboardData } from "./action";
 
 export default async function AdminDashboardPage() {
   // Ambil data dashboard di sisi server
-  const dashboardData = await getDashboardData();
+  // const dashboardData = await getDashboardData();
 
   return (
       <div className="space-y-6">
         {/* Meneruskan semua data yang diambil ke Client Component */}
-        <DashboardClient dashboardData={dashboardData} />
+        <DashboardClient />
       </div>
   );
 }

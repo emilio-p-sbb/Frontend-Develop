@@ -11,73 +11,79 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  MessageCircle, // Hapus jika sudah ada di parent
+  MessageCircle,
+  Archive,
+  Star, // Hapus jika sudah ada di parent
 } from "lucide-react";
 import { useAdminStore } from "@/stores/adminStore"; // Jika Anda masih ingin menggunakan Zustand
 import { Message } from "@/types/message";
 import MessageCard from "./message-card";
 import MessageDetailModal from "./message-detail-modal";
+import { useResources } from "@/hooks/private/use-resource";
+import { Badge } from "@/components/ui/badge";
+import { useUpdateAllResource } from "@/hooks/private/use-update-resource";
 
-interface MessageListProps {
-  initialMessages: Message[]; // Pesan awal dari Server Component (tidak diarsipkan)
-  totalUnreadCount: number; // Jumlah total pesan belum dibaca
-}
 
-export default function MessageList({ initialMessages, totalUnreadCount }: MessageListProps) {
+export default function MessageList() {
+
+  const { data: initialMessages, isLoading: isLoadingAll, error: errorAll } = useResources<Message[]>("messages");
+  const { mutate: updateMessages, isPending: isUpdating } = useUpdateAllResource("messages");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "starred" | "archived">("all");
-  const [messages, setMessages] = useState<Message[]>(initialMessages); // State lokal untuk pesan
+  const [messages, setMessages] = useState<Message[]>(initialMessages?.data ?? []); // State lokal untuk pesan
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
   // Gunakan Zustand store jika masih relevan untuk state global seperti notifikasi unread
   const { setActiveSection, setUnreadMessages } = useAdminStore();
 
+  const totalUnreadCount = useMemo(() => {
+    return initialMessages?.data?.filter(msg => !msg.read).length ?? 0;
+  }, [initialMessages]);
+
+  const activeMessages = useMemo(() => {
+    return initialMessages?.data?.filter(msg => !msg.archived).length ?? 0;
+  }, [initialMessages]);
+
   useEffect(() => {
     document.title = "Messages | Portfolio Admin";
     setActiveSection('messages');
     // Sinkronkan unread count dari server dengan Zustand store saat komponen pertama kali dimuat
+    
     setUnreadMessages(totalUnreadCount);
   }, [setActiveSection, setUnreadMessages, totalUnreadCount]);
 
   // Perbarui state pesan lokal saat initialMessages berubah (misal setelah Server Action)
   useEffect(() => {
-    setMessages(initialMessages);
-    // Hitung ulang unread count lokal jika filter "all" aktif
-    setUnreadMessages(initialMessages.filter(msg => !msg.isRead).length);
+    setMessages(initialMessages?.data ?? []);
+    setUnreadMessages(initialMessages?.data?.filter(msg => !msg.read).length ?? 0);
   }, [initialMessages, setUnreadMessages]);
 
 
+
   const filteredAndSearchedMessages = useMemo(() => {
-    let currentMessages = messages;
+    let currentMessages: Message[] = [];
 
-    // Filter berdasarkan kategori
     if (filter === "unread") {
-      currentMessages = currentMessages.filter(msg => !msg.isRead);
+      currentMessages = messages.filter(msg => !msg.read);
     } else if (filter === "starred") {
-      currentMessages = currentMessages.filter(msg => msg.isStarred);
+      currentMessages = messages.filter(msg => msg.starred);
     } else if (filter === "archived") {
-      // Untuk filter archived, kita butuh semua pesan dari server,
-      // tapi di sini initialMessages sudah filter yang tidak diarsipkan.
-      // Untuk demo, kita bisa asumsikan `messages` sudah berisi semua pesan yang mungkin.
-      // Dalam aplikasi nyata, Anda mungkin perlu Server Action `getArchivedMessages` terpisah.
-      currentMessages = initialMessages.filter(msg => msg.isArchived); // Filter dari data awal jika perlu
-    } else { // "all" atau default
-        currentMessages = initialMessages.filter(msg => !msg.isArchived); // Pastikan "all" hanya menampilkan yang tidak diarsipkan
+      currentMessages = initialMessages?.data?.filter(msg => msg.archived) ?? [];
+    } else { // "all"
+      currentMessages = initialMessages?.data?.filter(msg => !msg.archived) ?? [];
     }
-
 
     // Filter berdasarkan pencarian
     if (searchQuery.trim()) {
       const lowerCaseQuery = searchQuery.toLowerCase();
-      currentMessages = currentMessages.filter(msg =>
-        msg.from.toLowerCase().includes(lowerCaseQuery) ||
-        msg.subject.toLowerCase().includes(lowerCaseQuery) ||
-        msg.message.toLowerCase().includes(lowerCaseQuery)
+      currentMessages = currentMessages.filter(msg => msg.from.toLowerCase().includes(lowerCaseQuery) || msg.subject.toLowerCase().includes(lowerCaseQuery) || msg.message.toLowerCase().includes(lowerCaseQuery)
       );
     }
 
     return currentMessages;
-  }, [messages, initialMessages, searchQuery, filter]); // Tambahkan initialMessages ke dependency array
+  }, [messages, initialMessages, searchQuery, filter]);
+
 
   const handleMessageClick = (message: Message) => {
     setSelectedMessage(message);
@@ -88,9 +94,48 @@ export default function MessageList({ initialMessages, totalUnreadCount }: Messa
     setSelectedMessage(null);
   };
 
+  const archiveAllReadMessages = () => {
+    console.log("Server Action: Archiving all read messages");
+    updateMessages({path:'archive-all-read'})
+  }
+
+  const markAllImportant = () => {
+    console.log("Server Action: Marking all messages as important");
+    updateMessages({path:'mark-all-important'})
+  }
+
   return (
     <>
       {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <MessageCircle className="text-portfolio-light-blue" />
+            Messages
+            {totalUnreadCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {totalUnreadCount} new
+              </Badge>
+            )}
+          </h1>
+          <p className="text-gray-500 mt-1">Manage your portfolio inquiries and messages.</p>
+        </div>
+        <div className="flex gap-2">
+          {/* Menggunakan form action untuk memanggil Server Action */}
+          <form action={archiveAllReadMessages}>
+            <Button variant="outline" size="sm" type="submit">
+              <Archive size={16} className="mr-2" />
+              Archive Read
+            </Button>
+          </form>
+          <form action={markAllImportant}>
+            <Button size="sm" type="submit">
+              <Star size={16} className="mr-2" />
+              Mark All Important
+            </Button>
+          </form>
+        </div>
+      </div>
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -116,21 +161,21 @@ export default function MessageList({ initialMessages, totalUnreadCount }: Messa
                 size="sm"
                 onClick={() => setFilter("unread")}
               >
-                Unread ({messages.filter(msg => !msg.isRead).length})
+                Unread ({messages.filter(msg => !msg.read).length})
               </Button>
               <Button
                 variant={filter === "starred" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("starred")}
               >
-                Starred ({messages.filter(msg => msg.isStarred).length})
+                Starred ({messages.filter(msg => msg.starred).length})
               </Button>
               <Button
                 variant={filter === "archived" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("archived")}
               >
-                Archived ({initialMessages.filter(msg => msg.isArchived).length})
+                Archived ({initialMessages?.data.filter(msg => msg.archived).length})
               </Button>
             </div>
           </div>

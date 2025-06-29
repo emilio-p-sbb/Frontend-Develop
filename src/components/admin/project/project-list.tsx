@@ -1,7 +1,7 @@
 // app/admin/projects/components/project-list.tsx
 "use client"; // Ini adalah Client Component
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
@@ -22,90 +22,96 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input"; // Untuk search input
 import { Project } from "@/types/project";
-import { deleteProject, updateProject } from "@/app/admin/projects/action";
 import ProjectModal from "./project-modal";
+import { useDeleteResource } from "@/hooks/private/use-delete-resource";
+import { useResourceByParams, useResources } from "@/hooks/private/use-resource";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
-// Import Server Actions
 
-interface ProjectListProps {
-  projects: Project[]; // Data proyek dari Server Component
-}
+export default function ProjectList() {
 
-export default function ProjectList({ projects }: ProjectListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Atur jumlah item per halaman
+  const [searchTrigger, setSearchTrigger] = useState("");
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    open: boolean;
+    projectId: number | null;
+  }>({
+    open: false,
+    projectId: null,
+  });
 
-  const filteredProjects = useMemo(() => {
-    if (!searchQuery.trim()) return projects;
+  const { data: allProjectsResponse, isLoading: isLoadingAll, error: errorAll } = useResources<Project[]>("projects");
+  const deleteOne = useDeleteResource<Project>("projects");
 
-    return projects.filter(project =>
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.technologies.some(tech => tech.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [projects, searchQuery]);
-
-  // Logika paginasi
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const currentItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredProjects.slice(startIndex, endIndex);
-  }, [filteredProjects, currentPage, itemsPerPage]);
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset ke halaman 1 saat pencarian
-  };
-
-  const handleDeleteClick = async (id: number) => {
-    if (confirm("Are you sure you want to delete this project?")) {
-      try {
-        await deleteProject(id); // Panggil Server Action
-        alert("Project deleted successfully!");
-        // Revalidate dilakukan di Server Action, jadi halaman akan otomatis refresh
-      } catch (error) {
-        console.error("Failed to delete project:", error);
-        alert("Failed to delete project. Please try again.");
+  const {data: searchProjectsResponse, isLoading: isLoadingSearch, error: errorSearch} = useResourceByParams<Project[]>("projects",{ keyword: searchTrigger }, searchTrigger.length > 0);
+  
+    useEffect(() => {
+      if (searchTrigger.length > 0) {
+        setFilteredProjects(searchProjectsResponse?.data ?? []);
+      } else {
+        setFilteredProjects(allProjectsResponse?.data ?? []);
       }
-    }
-  };
+    }, [searchTrigger, allProjectsResponse, searchProjectsResponse]);
 
-  const handleEditSave = async (updatedProject: Project) => {
-    try {
-      await updateProject(updatedProject); // Panggil Server Action
-      alert("Project updated successfully!");
-      // Revalidate dilakukan di Server Action
-    } catch (error) {
-      console.error("Failed to update project:", error);
-      alert("Failed to update project. Please try again.");
+
+    const handleSearchClick = () => {
+      setSearchTrigger(searchQuery.trim());
+    };
+  
+    const handleDeleteClick = (projectId: number) => {
+      setConfirmDelete({ open: true, projectId });
+    };
+  
+    const handleConfirmDelete = async () => {
+      if (confirmDelete.projectId) {
+        try {
+          await deleteOne.mutateAsync(confirmDelete.projectId);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setConfirmDelete({ open: false, projectId: null });
+    };
+  
+    const handleEditSave = async (projectId: Project) => {
+      // Optional: trigger refetch or update local state
+    };
+  
+    if (isLoadingAll || isLoadingSearch) {
+      return <p className="text-center py-10 text-gray-500">Loading projects...</p>;
     }
-  };
+  
+    if (errorAll || errorSearch) {
+      return (
+        <p className="text-center py-10 text-red-500">Failed to load projects.</p>
+      );
+    }
 
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 gap-2">
         <Input
-          type="text"
-          placeholder="Search projects..."
+          placeholder="Search skills by name or category..."
           value={searchQuery}
-          onChange={handleSearchChange}
+          onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-sm"
         />
+        <Button onClick={handleSearchClick}>Search</Button>
       </div>
 
-      {searchQuery && (
+      {searchTrigger && (
+        <p className="text-sm text-gray-600 mb-4">
+          Found {filteredProjects.length} project
+          {filteredProjects.length !== 1 ? "s" : ""} matching "{searchTrigger}"
+        </p>
+      )}
+
+      {/* {searchQuery && (
         <p className="text-sm text-gray-600 mb-4">
           Found {filteredProjects.length} projects matching "{searchQuery}"
         </p>
-      )}
+      )} */}
 
       {/* Projects Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -121,14 +127,14 @@ export default function ProjectList({ projects }: ProjectListProps) {
                 </TableHead>
                 <TableHead className="hidden md:table-cell">Technologies</TableHead>
                 <TableHead className="hidden sm:table-cell">Featured</TableHead>
-                <TableHead className="hidden lg:table-cell w-[100px]">Date</TableHead>
+                {/* <TableHead className="hidden lg:table-cell w-[100px]">Date</TableHead> */}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentItems.length > 0 ? (
-                currentItems.map((project) => (
-                  <TableRow key={project.id}>
+              {filteredProjects.length > 0 ? (
+                filteredProjects.map((project) => (
+                  <TableRow key={project.projectId}>
                     <TableCell className="font-medium">
                       <div>
                         <p className="font-semibold">{project.title}</p>
@@ -136,7 +142,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                           {project.description}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-2 md:hidden">
-                          {project.technologies.slice(0, 2).map((tech, i) => (
+                          {project.technologies.split(",").slice(0, 2).map((tech, i) => (
                             <span key={i} className="bg-gray-100 text-xs px-2 py-1 rounded">
                               {tech}
                             </span>
@@ -151,7 +157,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {project.technologies.map((tech, i) => (
+                        {project.technologies.split(",").map((tech, i) => (
                           <span key={i} className="bg-gray-100 text-xs px-2 py-1 rounded">
                             {tech}
                           </span>
@@ -169,7 +175,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{project.createdAt}</TableCell>
+                    {/* <TableCell className="hidden lg:table-cell">{project.createdAt}</TableCell> */}
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-1">
                         <ProjectModal
@@ -189,7 +195,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                           variant="outline"
                           size="icon"
                           className="text-red-500 h-8 w-8"
-                          onClick={() => handleDeleteClick(project.id)}
+                          onClick={() => handleDeleteClick(project.projectId)}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -209,7 +215,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {/* {totalPages > 1 && (
           <div className="py-4">
             <Pagination>
               <PaginationContent>
@@ -233,7 +239,19 @@ export default function ProjectList({ projects }: ProjectListProps) {
               </PaginationContent>
             </Pagination>
           </div>
-        )}
+        )} */}
+
+
+        <ConfirmationDialog
+                open={confirmDelete.open}
+                onOpenChange={(open) => setConfirmDelete({ open, projectId: null })}
+                title="Delete project"
+                description="Are you sure you want to delete this project? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={handleConfirmDelete}
+                variant="destructive"
+              />
       </div>
     </>
   );

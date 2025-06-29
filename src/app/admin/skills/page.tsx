@@ -11,8 +11,6 @@ import SkillList from "@/components/admin/skill/skill-list";
 
 export default async function AdminSkillsPage() {
   // Mengambil data skill menggunakan Server Action
-  const skills = await getSkills();
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -32,7 +30,7 @@ export default async function AdminSkillsPage() {
       </div>
 
       {/* Menampilkan daftar skill menggunakan Client Component */}
-      <SkillList skills={skills} />
+      <SkillList/>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import Link from "next/link";
 
 interface UserProps {
@@ -29,6 +29,9 @@ interface AdminNavbarProps {
 }
 
 export default function AdminNavbar({ onToggleSidebar, user, onSearch }: AdminNavbarProps) {
+
+  const { data: session, status } = useSession();
+
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = async () => {
@@ -93,7 +96,7 @@ export default function AdminNavbar({ onToggleSidebar, user, onSearch }: AdminNa
                 <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
                   <User size={18} />
                 </div>
-                <span className="font-medium hidden md:inline-block">{user?.username || 'Admin'}</span>
+                <span className="font-medium hidden md:inline-block">{session?.user?.name || 'Admin'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

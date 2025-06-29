@@ -20,8 +20,7 @@ export interface RecentActivity {
 }
 
 export interface DashboardData {
-  userName: string;
   stats: DashboardStat[];
   recentActivities: RecentActivity[];
-  unreadMessages: number;
+  // unreadMessages: number;
 }

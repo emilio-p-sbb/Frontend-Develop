@@ -1,15 +1,15 @@
 // app/hooks/useCreateResource.ts
 import { useToast } from "@/hooks/use-toast"
-import { createResourceRouter } from "@/lib/api/genericAPIRouter"
+import { createPrivateResourceAPI } from "@/lib/api/private/createPrivateResourceAPI"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 export const useCreateResource = <T extends object>(
   resource: string,
-  service: string = 'auth'
+  service: string = 'auth',
 ) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const resourceRouter = createResourceRouter<T>(resource, true, service)
+  const resourceRouter = createPrivateResourceAPI<T>(resource, true, service)
 
   return useMutation({
     mutationFn: (data: T) => resourceRouter.create(data),

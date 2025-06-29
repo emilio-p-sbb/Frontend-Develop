@@ -23,51 +23,39 @@ export const authOptions: NextAuthOptions = {
         }
         try {
 
-          const loginAxios = axios.create({
-            withCredentials: true,
-            headers: {
-              "Content-Type": "application/json",
+          const loginResponse = await axios.post(
+            `${AUTH_API_URL}/auth/signin`,
+            {
+              username: credentials.username,
+              password: credentials.password,
             },
-          })
+            {
+              withCredentials: true,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          )
 
-          // PENTING: Gunakan URL langsung ke backend, bukan melalui proxy
-          const res = await loginAxios.post(`${AUTH_API_URL}/auth/signin`, {
-            username: credentials.username,
-            password: credentials.password,
-          })
+          console.log("✅ Login response status:", loginResponse.status)
+          console.log("🍪 Set-Cookie headers:", loginResponse.headers["set-cookie"])
 
-          // Log Set-Cookie headers jika ada
-          if (res.headers["set-cookie"]) {
-            console.log("🍪 Set-Cookie headers:", res.headers["set-cookie"])
-          }
-
-          if (res.status === 200 && res.data.accessToken) {
-            const { accessToken, refreshToken, information } = res.data;
+          if (loginResponse.status === 200 && loginResponse.data) {
+            const { accessToken, refreshToken, information } = loginResponse.data
 
             console.log("✅ Login successful for user:", information.fullname)
 
-            // Simpan cookie secara manual jika di browser
-            if (typeof window !== "undefined") {
-              // Parse Set-Cookie header dan set cookie di browser
-              if (res.headers["set-cookie"]) {
-                res.headers["set-cookie"].forEach((cookie: string) => {
-                  document.cookie = cookie.split(";")[0] + "; path=/;"
-                })
-              }
-            }
-            
-            // Mengembalikan objek user dengan data tambahan jika login berhasil
             return {
-              id: information.userId, // ID pengguna
-              fullname: information.fullname, // Nama pengguna
-              email: information.email, // Email pengguna
-              phone: information.phone, // Phone pengguna
-              accessToken, // Menyimpan accessToken untuk digunakan di JWT
-              refreshToken, // Jika perlu refreshToken
-            };
+              id: information.userId.toString(),
+              name: information.fullname,
+              email: information.email,
+              phone: information.phone,
+              accessToken,
+              refreshToken,
+            }
           } else {
-            console.error("Invalid login response:", JSON.stringify(res.data));
-            return null;
+            console.error("❌ Invalid login response")
+            return null
           }
         } catch (e: any) {
           if (e.response && e.response.data) {
@@ -82,6 +70,7 @@ export const authOptions: NextAuthOptions = {
       }),
   ],
 
+  secret: process.env.NEXTAUTH_SECRET,
   // Mengatur sesi dengan JWT
   session: {
     strategy: "jwt", // Gunakan JWT untuk strategi sesi
@@ -103,8 +92,9 @@ export const authOptions: NextAuthOptions = {
     },
     // Callback untuk sesi, menambahkan data token ke dalam sesi
     async session({ session, token }: { session: any; token: JWT }) {
-      // session.accessToken = token.accessToken; // Menyimpan accessToken dalam sesi
-      // session.refreshToken = token.refreshToken; // Menyimpan refreshToken dalam sesi jika perlu
+      session.accessToken = token.accessToken; // Menyimpan accessToken dalam sesi
+      session.refreshToken = token.refreshToken; // Menyimpan refreshToken dalam sesi jika perlu
+      session.id = token.id;
       session.username = token.username; // Menyimpan username dalam sesi
       session.email = token.email; // Menyimpan email dalam sesi
       session.phone = token.phone; // Menyimpan phone dalam sesi

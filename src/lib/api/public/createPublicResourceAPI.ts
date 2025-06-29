@@ -1,10 +1,10 @@
 // app/apiClient/createResourceAPI.ts
 import { ResponseData } from "@/types/ResponseData";
-import { apiRequest } from "@/lib/axios";
 import { UseListProps } from "@/types/UseListProps";
 import { PagedResponse } from "@/types/PagedResponse";
+import { apiRequestPublic } from "../../axios/publicAxios";
 
-export const createResourceAPI = <T>(
+export const createPublicResourceAPI = <T>(
   resource: string,
   isPaged: boolean = true,
   service: string = 'auth'
@@ -13,18 +13,31 @@ export const createResourceAPI = <T>(
   const base = `/api/${resource}`;
 
   return {
-    getOne: (id: number) => apiRequest<ResponseData<T>>('GET', `${base}/${id}`),
+    getOne: (id: number) => apiRequestPublic<ResponseData<T>>('GET', `${base}/${id}`),
 
-    create: (data: T) => apiRequest<ResponseData<T>>('POST', `${base}/save`, data),
+    create: (data: T) => apiRequestPublic<ResponseData<T>>('POST', `${base}/save`, data),
 
-    update: (data: T) => apiRequest<ResponseData<T>>('PUT', `${base}/update`, data),
+    update: (data: T) => apiRequestPublic<ResponseData<T>>('PUT', `${base}/update`, data),
 
-    delete: (id: number) => apiRequest<ResponseData<void>>('DELETE', `${base}/delete/${id}`),
+    createMultipart: (data: FormData) => apiRequestPublic<ResponseData<T>>('POST', `${base}/save`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }),
 
-    deleteMultiple: (ids: number[]) =>
-      apiRequest<ResponseData<void>>('DELETE', `${base}/deleteMultiple`, ids),
 
-    getList: () => apiRequest<ResponseData<T>>('GET', `${base}`),
+    updateMultipart: (data: FormData) =>
+      apiRequestPublic<ResponseData<T>>('PUT', `${base}/update`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }),
+
+    delete: (id: number) => apiRequestPublic<ResponseData<void>>('DELETE', `${base}/delete/${id}`),
+
+    deleteMultiple: (ids: number[]) => apiRequestPublic<ResponseData<void>>('DELETE', `${base}/deleteMultiple`, ids),
+
+    getList: () => apiRequestPublic<ResponseData<T>>('GET', `${base}`),
 
     getAll: ({ pageIndex, pageSize, sorting, columnFilters }: UseListProps) => {
       const sortBy = sorting[0]?.id ?? '';
@@ -42,7 +55,7 @@ export const createResourceAPI = <T>(
         ...filterParams,
       }).toString();
 
-      return apiRequest<ResponseData<PagedResponse<T>>>(
+      return apiRequestPublic<ResponseData<PagedResponse<T>>>(
         'GET',
         `${base}/partialList?${queryString}`
       );
@@ -54,7 +67,7 @@ export const createResourceAPI = <T>(
       params.append("scope", scope);
       ids.forEach((id) => params.append("ids", id.toString()));
 
-      return apiRequest<Blob>(
+      return apiRequestPublic<Blob>(
         "GET",
         `${base}/export?${params.toString()}`,
         null,
@@ -64,5 +77,15 @@ export const createResourceAPI = <T>(
         }
       );
     },
+
+    getByParams: (params: Record<string, string | number | boolean>) => {
+      const queryString = new URLSearchParams(
+        Object.entries(params).map(([key, value]) => [key, String(value)])
+      ).toString();
+
+      return apiRequestPublic<ResponseData<T>>('GET', `${base}/findBy?${queryString}`);
+    },
   };
+
+  
 };

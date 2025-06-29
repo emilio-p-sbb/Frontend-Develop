@@ -14,21 +14,34 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminStore } from '@/stores/adminStore';
+import { useResources } from '@/hooks/private/use-resource';
+import { Message } from '@/types/message';
+import { useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface AdminSidebarProps {
   collapsed: boolean;
 }
 
 export default function AdminSidebar({ collapsed }: AdminSidebarProps) {
+
+  const { data: session, status } = useSession();
+
   const pathname = usePathname();
-  const { unreadMessages } = useAdminStore();
+  // const { unreadMessages } = useAdminStore();
+
+  const { data: initialMessages, isLoading: isLoadingAll, error: errorAll } = useResources<Message[]>("messages");
+  const totalUnreadCount = useMemo(() => {
+      return initialMessages?.data?.filter(msg => !msg.read).length ?? 0;
+    }, [initialMessages]);
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Briefcase, label: 'Experience', path: '/admin/experience' },
+    { icon: GraduationCap, label: "Education", path: "/admin/education" },
     { icon: Code, label: 'Projects', path: '/admin/projects' },
     { icon: GraduationCap, label: 'Skills', path: '/admin/skills' },
-    { icon: MessageCircle, label: 'Messages', path: '/admin/messages', badge: unreadMessages },
+    { icon: MessageCircle, label: 'Messages', path: '/admin/messages', badge: totalUnreadCount },
     { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics' },
     { icon: User, label: 'Profile', path: '/admin/profile' },
     { icon: Settings, label: 'Settings', path: '/admin/settings' },
@@ -84,7 +97,7 @@ export default function AdminSidebar({ collapsed }: AdminSidebarProps) {
         {!collapsed && (
           <div>
             <p className="text-sm text-gray-300">Logged in as</p>
-            <p className="font-medium">Admin</p>
+            <p className="font-medium">{session?.user?.name || 'Admin'}</p>
           </div>
         )}
       </div>

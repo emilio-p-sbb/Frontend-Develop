@@ -1,94 +1,78 @@
 import React from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
 
-interface ExperienceItem {
-  id: string;
-  company: string;
-  position: string;
-  period: string;
-  description: string[];
-}
-
-const experiences: ExperienceItem[] = [
-  {
-    id: "arthamas",
-    company: "PT. Arthamas Solusindo",
-    position: "Java Software Engineer",
-    period: "2018 – Present",
-    description: [
-      "Designed, developed, and maintained backend services using Java and Spring Boot, following microservices architecture.",
-      "Created and integrated RESTful APIs to support cross-service communication and frontend-backend interaction.",
-      "Collaborated with front-end developers and other backend teams to deliver reliable and scalable solutions.",
-      "Maintained and improved existing applications to align with changing user and business requirements.",
-      "Identified and resolved bugs and performance issues to ensure system stability.",
-      "Utilized Git for version control and collaborative development in an agile environment.",
-    ],
-  },
-  {
-    id: "tridaya",
-    company: "PT. Tridaya Asira",
-    position: "Web Developer",
-    period: "2015 – 2018",
-    description: [
-      "Involved in developing web applications for banking sector clients (ForBanking project) under a consulting company.",
-      "Built applications using Java with Struts2 and Hibernate frameworks.",
-      "Deployed and managed applications using Apache Tomcat.",
-      "Worked with SQL Server and PostgreSQL databases.",
-      "Conducted testing to ensure functionality and performance.",
-      "Responsible for application maintenance and issue resolution post-deployment.",
-      "Gained 3 years of experience throughout the full development lifecycle.",
-    ],
-  },
-];
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MapPin } from "lucide-react";
+import { useResources } from "@/hooks/public/use-resource";
+import { ExperienceResponse } from "@/types/experience";
 
 export function ExperienceSection() {
+
+  const { data: experiences, isLoading: isLoadingAll, error: errorAll } = useResources<ExperienceResponse[]>("experiences/public");
+
   return (
+
     <section id="experience" className="section-padding border-t border-gray-100">
       <h2 className="section-heading">Work Experience</h2>
+      
+      <div className="relative mt-8">
+        {/* Timeline line */}
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block"></div>
+        
+        <div className="space-y-8">
+          {experiences?.data.map((experience, index) => (
+            <div key={experience.experienceId} className="relative">
+              {/* Timeline dot */}
+              <div className="absolute left-2 top-6 w-4 h-4 bg-portfolio-light-blue rounded-full border-4 border-white shadow-md hidden md:block"></div>
+              
+              <Card className="border-0 shadow-md md:ml-12 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-portfolio-navy">
+                        {experience.position}
+                      </h3>
+                      <p className="text-lg font-medium text-portfolio-light-blue">
+                        {experience.company}
+                      </p>
+                    </div>
+                    <div className="flex flex-col md:items-end mt-2 md:mt-0">
+                      <div className="flex items-center text-gray-600 text-sm">
+                        <Calendar size={14} className="mr-1" />
+                        <span>
+                           {experience.startDate.split("-")[0]} -{" "}
+                           {experience.isCurrent ? "Present" : experience.endDate?.split("-")[0]}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm mt-1">
+                        <MapPin size={14} className="mr-1" />
+                        <span>{experience.location}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-gray-700 mb-4">{experience.description}</p>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-800 mb-2">Key Responsibilities:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-gray-600">
 
-      <div className="mt-8 grid grid-cols-1 gap-6">
-        {experiences.map((exp) => (
-          <Card key={exp.id} className="border-0 shadow-md overflow-hidden card-hover">
-            <div className="flex flex-col md:flex-row">
-              <div className="bg-portfolio-navy text-white p-6 md:w-1/3 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold">{exp.position}</h3>
-                  <p className="text-portfolio-bright-blue mt-1">{exp.company}</p>
-                </div>
-                <div className="mt-4 flex items-center">
-                  <Calendar size={16} className="mr-2" />
-                  <span className="text-sm">{exp.period}</span>
-                </div>
-              </div>
-
-              <div className="p-6 md:w-2/3 bg-white">
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="item-1" className="border-0">
-                    <AccordionTrigger className="py-2 text-portfolio-navy hover:no-underline font-medium">
-                      Key Responsibilities
-                    </AccordionTrigger>
-
-                    <AccordionContent className="text-gray-700">
-                      <ul className="list-disc pl-5 space-y-2">
-                        {exp.description.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
+                      {(typeof experience?.responsibilities === "string"
+                          ? experience.responsibilities.split("\n")
+                          : []
+                        )
+                          .filter((line) => line.trim() !== "")
+                          .map((resp, i) => (
+                            <li key={i}>{resp}</li>
+                          ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
+
   );
 }

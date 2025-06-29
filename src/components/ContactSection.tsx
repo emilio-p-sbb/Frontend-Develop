@@ -8,58 +8,51 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, Linkedin, Github, MapPin, Download, Facebook } from "lucide-react";
 import { useContentStore } from "@/stores/contentStore";
+import { z } from "zod";
+import { useCreateResource } from "@/hooks/public/use-create-resource";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const messageSchema = z.object({
+  from: z.string().min(1, "From is required"),
+  email: z.string().email("Invalid email address"),
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(1, "Message is required"),
+});
+
+type MessageFormData = z.infer<typeof messageSchema>;
 
 export function ContactSection() {
   const { toast } = useToast();
   const { profile } = useContentStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
+
+  const { mutate: send, isPending: isCreating } = useCreateResource<MessageFormData>("messages");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<MessageFormData>({
+    resolver: zodResolver(messageSchema),
+    defaultValues: {
+      from: "",
+      email: "",
+      subject: "",
+      message: "",
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  // const onSubmit = (data: MessageFormData) => send(data);
 
-    try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderName: formData.name,
-          senderEmail: formData.email,
-          subject: formData.subject,
-          message: formData.message
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Message Sent",
-          description: "Thank you! Your message has been sent successfully.",
-        });
-        setFormData({ name: '', email: '', subject: '', message: '' });
-      } else {
-        throw new Error('Failed to send message');
+  const onSubmit = (data: MessageFormData) => {
+    send(data, {
+      onSuccess: () => {
+        reset(); // ✅ Reset form
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
 
   const handleDownloadCV = () => {
     toast({
@@ -159,30 +152,35 @@ export function ContactSection() {
         <Card className="border-0 shadow-md card-hover">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-semibold text-portfolio-navy mb-6">Send a Message</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium text-gray-700">Name</label>
-                  <Input id="name" name="name" placeholder="Your name" value={formData.name} onChange={handleInputChange} required />
+                  <label htmlFor="from" className="text-sm font-medium text-gray-700">From</label>
+                  <Input id="from" {...register("from")} placeholder="Your name" />
+                  {errors.from && <p className="text-sm text-red-500">{errors.from.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
-                  <Input id="email" name="email" type="email" placeholder="Your email" value={formData.email} onChange={handleInputChange} required />
+                  <Input id="email" type="email" {...register("email")} placeholder="Your email" />
+                  {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="subject" className="text-sm font-medium text-gray-700">Subject</label>
-                <Input id="subject" name="subject" placeholder="Message subject" value={formData.subject} onChange={handleInputChange} required />
+                <Input id="subject" {...register("subject")} placeholder="Message subject" />
+                {errors.subject && <p className="text-sm text-red-500">{errors.subject.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="message" className="text-sm font-medium text-gray-700">Message</label>
-                <Textarea id="message" name="message" placeholder="Your message" rows={4} value={formData.message} onChange={handleInputChange} required />
+                <Textarea id="message" {...register("message")} placeholder="Your message" rows={4} />
+                {errors.message && <p className="text-sm text-red-500">{errors.message.message}</p>}
               </div>
 
-              <Button type="submit" className="w-full bg-portfolio-navy hover:bg-portfolio-blue" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send Message'}
+              <Button type="submit" className="w-full bg-portfolio-navy hover:bg-portfolio-blue" disabled={isCreating}>
+                {isCreating ? 'Sending...' : 'Send Message'}
               </Button>
             </form>
           </CardContent>

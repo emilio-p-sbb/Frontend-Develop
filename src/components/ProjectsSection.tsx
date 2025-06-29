@@ -5,47 +5,48 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Github, FileText, Eye } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useResources } from "@/hooks/public/use-resource";
 
 interface Project {
-  id: string;
+  projectId: string;
   title: string;
   description: string;
-  technologies: string[];
+  technologies: string;
   imageUrl?: string;
   githubUrl?: string;
-  liveUrl?: string;
-  pdfUrl?: string;
+  demoUrl?: string;
+  codeUrl?: string;
 }
 
-const projectsData: Project[] = [
-  {
-    id: "project1",
-    title: "Banking System API",
-    description: "A comprehensive RESTful API for a banking system with transaction management and user authentication.",
-    technologies: ["Java", "Spring Boot", "PostgreSQL", "JWT"],
-    imageUrl: "placeholder.svg",
-    githubUrl: "#",
-    pdfUrl: "/documents/banking-system-api.pdf",
-  },
-  {
-    id: "project2",
-    title: "Payment Gateway Integration",
-    description: "Microservice for handling payment gateway integrations with multiple providers.",
-    technologies: ["Java", "Spring Boot", "Kafka", "Redis"],
-    imageUrl: "placeholder.svg",
-    githubUrl: "#",
-    liveUrl: "#",
-    pdfUrl: "/documents/payment-gateway.pdf",
-  },
-  {
-    id: "project3",
-    title: "User Management System",
-    description: "Centralized user management system with role-based access control.",
-    technologies: ["Java", "Spring Security", "PostgreSQL"],
-    imageUrl: "placeholder.svg",
-    githubUrl: "#",
-  },
-];
+// const projectsData: Project[] = [
+//   {
+//     projectId: "project1",
+//     title: "Banking System API",
+//     description: "A comprehensive RESTful API for a banking system with transaction management and user authentication.",
+//     technologies: ["Java", "Spring Boot", "PostgreSQL", "JWT"],
+//     imageUrl: "placeholder.svg",
+//     githubUrl: "#",
+//     codeUrl: "/documents/banking-system-api.pdf",
+//   },
+//   {
+//     projectId: "project2",
+//     title: "Payment Gateway Integration",
+//     description: "Microservice for handling payment gateway integrations with multiple providers.",
+//     technologies: ["Java", "Spring Boot", "Kafka", "Redis"],
+//     imageUrl: "placeholder.svg",
+//     githubUrl: "#",
+//     demoUrl: "#",
+//     codeUrl: "/documents/payment-gateway.pdf",
+//   },
+//   {
+//     projectId: "project3",
+//     title: "User Management System",
+//     description: "Centralized user management system with role-based access control.",
+//     technologies: ["Java", "Spring Security", "PostgreSQL"],
+//     imageUrl: "placeholder.svg",
+//     githubUrl: "#",
+//   },
+// ];
 
 function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
   return (
@@ -60,6 +61,9 @@ function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
 }
 
 export function ProjectsSection() {
+
+  const { data: projects, isLoading: isLoadingAll, error: errorAll } = useResources<Project[]>("projects/public");
+
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
   const handleOpenPdf = (pdfUrl: string) => {
@@ -70,13 +74,25 @@ export function ProjectsSection() {
     setSelectedPdf(null);
   };
 
+  if (isLoadingAll) {
+    return <div className="text-center py-10">Loading projects...</div>;
+  }
+
+  if (errorAll) {
+    return <div className="text-center py-10 text-red-500">Failed to load projects.</div>;
+  }
+
+  if (!projects || projects.data.length === 0) {
+    return <div className="text-center py-10 text-gray-500">No projects found.</div>;
+  }
+
   return (
     <section id="projects" className="section-padding border-t border-gray-100">
       <h2 className="section-heading">Projects</h2>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projectsData.map((project) => (
-          <div key={project.id} className="project-card card-hover">
+        {projects.data.map((project) => (
+          <div key={project.projectId} className="project-card card-hover">
             <Card className="h-full border-0 shadow-md overflow-hidden">
               <div className="aspect-video bg-gray-100 flex items-center justify-center">
                 <img
@@ -90,14 +106,12 @@ export function ProjectsSection() {
                 <p className="mt-2 text-sm text-gray-600">{project.description}</p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {project.technologies.map((tech, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-portfolio-blue text-xs rounded-full"
-                    >
+                  {project.technologies.split(",").slice(0, 2).map((tech, index) => (
+                    <span key={index} className="px-2 py-1 bg-gray-100 text-portfolio-blue text-xs rounded-full">
                       {tech}
                     </span>
-                  ))}
+                    ))}
+                  
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-2">
@@ -115,20 +129,20 @@ export function ProjectsSection() {
                     </Button>
                   )}
 
-                  {project.liveUrl && (
+                  {project.codeUrl && (
                     <Button
                       size="sm"
                       className="bg-portfolio-navy hover:bg-portfolio-blue flex items-center text-xs"
                       asChild
                     >
-                      <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={project.codeUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink size={14} className="mr-1" />
                         Live Demo
                       </a>
                     </Button>
                   )}
 
-                  {project.pdfUrl && (
+                  {project.codeUrl && (
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -153,7 +167,7 @@ export function ProjectsSection() {
                               className="text-xs flex items-center"
                               asChild
                             >
-                              <a href={project.pdfUrl} target="_blank" rel="noopener noreferrer">
+                              <a href={project.codeUrl} target="_blank" rel="noopener noreferrer">
                                 <FileText size={14} className="mr-1" />
                                 Download PDF
                               </a>
@@ -161,7 +175,7 @@ export function ProjectsSection() {
                             <Button
                               size="sm"
                               className="text-xs bg-portfolio-navy hover:bg-portfolio-blue flex items-center"
-                              onClick={() => handleOpenPdf(project.pdfUrl!)}
+                              onClick={() => handleOpenPdf(project.codeUrl!)}
                             >
                               <Eye size={14} className="mr-1" />
                               Preview

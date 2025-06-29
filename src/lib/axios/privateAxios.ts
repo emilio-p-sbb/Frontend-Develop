@@ -1,9 +1,8 @@
-import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios"
+import axios, { AxiosRequestConfig } from "axios"
 import { getSession } from "next-auth/react"
-import { Session } from "next-auth"
 
 // Create axios instance
-const axiosInstance = axios.create({
+const privateAxios = axios.create({
   baseURL: "",
   withCredentials: true, // Ini penting untuk mengirim cookies
   timeout: 10000,
@@ -12,14 +11,22 @@ const axiosInstance = axios.create({
   },
 })
 
-// Request interceptor untuk debugging
-axiosInstance.interceptors.request.use(
-  (config) => {
+// Interceptor REQUEST – inject Authorization header
+privateAxios.interceptors.request.use(
+  async (config) => {
     console.log(`🚀 Making ${config.method?.toUpperCase()} request to: ${config.url}`)
 
-    // Debug: Log cookies yang akan dikirim
-    if (typeof window !== "undefined") {
-      console.log("🍪 Cookies being sent:", document.cookie)
+    // Ambil session dari NextAuth
+    const session = await getSession()
+    const accessToken = session?.accessToken
+
+    console.log('accessToken req = '+accessToken)
+    if (accessToken) {
+      config.headers = config.headers || {}
+      config.headers.Authorization = `Bearer ${accessToken}`
+      console.log("🔐 Authorization header set:", config.headers.Authorization)
+    } else {
+      console.warn("⚠️ No access token found in session")
     }
 
     return config
@@ -31,7 +38,7 @@ axiosInstance.interceptors.request.use(
 )
 
 // Response interceptor untuk error handling dan debugging
-axiosInstance.interceptors.response.use(
+privateAxios.interceptors.response.use(
   (response) => {
     console.log(`✅ Response from ${response.config.url}:`, response.status)
     return response
@@ -55,20 +62,34 @@ axiosInstance.interceptors.response.use(
   },
 )
 
-export const apiRequest = async (
+export async function apiRequest<T>(
   method: string,
   url: string,
   data?: any,
-  config?: AxiosRequestConfig,
-): Promise<any> => {
-  const response = await axiosInstance.request({
+  config?: AxiosRequestConfig
+): Promise<T> {
+  console.log('url request axios = '+url)
+
+  const headers: Record<string, string> = {};
+
+  if (!(data instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await privateAxios.request({
     url,
     method,
     data,
+    withCredentials: true,
+    headers: {
+      ...headers,
+      ...(config?.headers || {}),
+    },
     ...config,
-  })
+  });
 
   return response.data
 }
 
-export default axiosInstance
+
+export default privateAxios;

@@ -4,15 +4,12 @@
 import ProjectModal from "@/components/admin/project/project-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getProjects } from "./action";
 import ProjectList from "@/components/admin/project/project-list";
 
 // Import mock data dari Server Actions untuk digunakan di sini
 // Atau Anda bisa memindahkan mock data ke file terpisah yang bisa diimpor di sini dan di actions.ts
 
 export default async function AdminProjectsPage() {
-  // Mengambil data proyek menggunakan Server Action
-  const projects = await getProjects(); // Ini akan mendapatkan mock data dari actions.ts
 
   return (
     <div className="space-y-6">
@@ -34,7 +31,7 @@ export default async function AdminProjectsPage() {
       </div>
 
       {/* Menampilkan daftar proyek menggunakan Client Component */}
-      <ProjectList projects={projects} />
+      <ProjectList />
     </div>
   );
 }

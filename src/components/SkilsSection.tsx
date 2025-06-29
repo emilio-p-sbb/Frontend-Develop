@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useResources } from "@/hooks/public/use-resource";
 
 interface SkillCategory {
   category: string;
@@ -11,58 +12,28 @@ interface SkillCategory {
   }[];
 }
 
-const skillsData: SkillCategory[] = [
-  {
-    category: "Programming Languages",
-    skills: [
-      { name: "Java", level: 95 },
-      { name: "JavaScript", level: 80 },
-      { name: "TypeScript", level: 75 }
-    ]
-  },
-  {
-    category: "Frameworks",
-    skills: [
-      { name: "Spring Boot", level: 90 },
-      { name: "Struts2", level: 85 },
-      { name: "React", level: 70 },
-      { name: "Next.js", level: 65 }
-    ]
-  },
-  {
-    category: "Web Technologies",
-    skills: [
-      { name: "RESTful APIs", level: 95 },
-      { name: "JSON", level: 90 },
-      { name: "HTML", level: 85 },
-      { name: "CSS", level: 75 }
-    ]
-  },
-  {
-    category: "Databases",
-    skills: [
-      { name: "PostgreSQL", level: 90 },
-      { name: "MySQL", level: 85 }
-    ]
-  },
-  {
-    category: "Other Technologies",
-    skills: [
-      { name: "Kafka", level: 80 },
-      { name: "Redis", level: 75 },
-      { name: "Git", level: 90 },
-      { name: "Maven", level: 85 }
-    ]
-  }
-];
-
 export function SkillsSection() {
+
+  const { data: skillsData, isLoading: isLoadingAll, error: errorAll } = useResources<SkillCategory[]>("skills/public");
+
+  if (isLoadingAll) {
+    return <div className="text-center py-10">Loading skills...</div>;
+  }
+
+  if (errorAll) {
+    return <div className="text-center py-10 text-red-500">Failed to load skills.</div>;
+  }
+
+  if (!skillsData || skillsData.data.length === 0) {
+    return <div className="text-center py-10 text-gray-500">No skills found.</div>;
+  }
+
   return (
     <section id="skills" className="section-padding border-t border-gray-100">
       <h2 className="section-heading">Skills</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-        {skillsData.map((category, index) => (
+        {skillsData.data.map((category, index) => (
           <Card key={index} className="border-0 shadow-md overflow-hidden card-hover">
             <div className="bg-gradient-to-r from-portfolio-navy to-portfolio-blue text-white p-4">
               <h3 className="text-lg font-semibold">{category.category}</h3>

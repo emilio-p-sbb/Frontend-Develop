@@ -1,7 +1,7 @@
 // app/admin/dashboard/components/dashboard-client.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Briefcase,
@@ -18,10 +18,13 @@ import { useAdminStore } from "@/stores/adminStore";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DashboardData } from "@/types/dashboard";
+import { useSession } from "next-auth/react";
+import { useResources } from "@/hooks/private/use-resource";
+import { Message } from "@/types/message";
 
-interface DashboardClientProps {
-  dashboardData: DashboardData;
-}
+// interface DashboardClientProps {
+//   dashboardData: DashboardData;
+// }
 
 // Objek pemetaan untuk mengonversi string ikon menjadi komponen ikon
 const iconMap: { [key: string]: LucideIcon } = { // Gunakan LucideIcon dari lucide-react untuk tipe
@@ -35,11 +38,24 @@ const iconMap: { [key: string]: LucideIcon } = { // Gunakan LucideIcon dari luci
   MessageCircle,
 };
 
-export default function DashboardClient({ dashboardData }: DashboardClientProps) {
+export default function DashboardClient() {
+
+  const { data: dashboardData, isLoading: isLoadingAll, error: errorAll } = useResources<DashboardData>("home/activities/recent");
+  const { data: initialMessages, isLoading: isLoadingAllMessage, error: errorAllMessage } = useResources<Message[]>("messages");
+
   const { setActiveSection, unreadMessages } = useAdminStore();
 
-  const { userName, stats, recentActivities, unreadMessages: initialUnreadMessages } = dashboardData;
-  const displayUnreadMessages = unreadMessages ?? initialUnreadMessages;
+  // Handle undefined stats & activities
+  const stats = dashboardData?.data?.stats ?? [];
+  const recentActivities = dashboardData?.data?.recentActivities ?? [];
+
+  // const { stats, recentActivities } = dashboardData?.data;
+
+  const { data: session, status } = useSession();
+
+  const totalUnreadCount = useMemo(() => {
+      return initialMessages?.data?.filter(msg => !msg.read).length ?? 0;
+    }, [initialMessages]);
 
   useEffect(() => {
     document.title = "Admin Dashboard | Portfolio";
@@ -50,7 +66,7 @@ export default function DashboardClient({ dashboardData }: DashboardClientProps)
     <>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {userName || 'Admin'}</h1>
+          <h1 className="text-3xl font-bold">Welcome back, {session?.user?.name || 'Admin'}</h1>
           <p className="text-gray-500 mt-1">Here's what's happening with your portfolio today.</p>
         </div>
         <div className="flex space-x-2">
@@ -186,7 +202,7 @@ export default function DashboardClient({ dashboardData }: DashboardClientProps)
                   Recent Messages
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  You have {displayUnreadMessages} unread messages from potential clients.
+                  You have {totalUnreadCount} unread messages from potential clients.
                 </p>
                 <Link href="/admin/messages">
                   <Button variant="link" size="sm" className="px-0 mt-1">Check messages</Button>

@@ -5,9 +5,9 @@
 // --- Tipe data baru untuk Profile ---
 export interface UserProfile {
   id: string;
-  name: string;
+  fullname: string;
   email: string;
-  avatar?: string;
+  avatar?: string | File;
   role: string;
   bio?: string;
   phone?: string;
@@ -16,7 +16,7 @@ export interface UserProfile {
   linkedinUrl?: string;
   githubUrl?: string;
   twitterUrl?: string;
-  skills: string[];
-  languages: string[];
+  // skills: string[];
+  // languages: string[];
   timezone: string;
 }

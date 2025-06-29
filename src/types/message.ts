@@ -5,7 +5,7 @@ export interface Message {
   subject: string;
   message: string;
   time: string; // Bisa diganti Date jika perlu sorting/filter real-time
-  isRead: boolean;
-  isStarred: boolean;
-  isArchived: boolean; // Tambahkan properti ini
+  read: boolean;
+  starred: boolean;
+  archived: boolean; // Tambahkan properti ini
 }
