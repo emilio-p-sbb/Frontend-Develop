@@ -9,10 +9,16 @@ import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { SkillsSection } from "@/components/SkilsSection";
+import { useResource } from "@/hooks/public/use-resource";
+import { UserProfile } from "@/types/user-profile";
+import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 
 export default function HomePage(){
+
+  const { data: profileResponse, isLoading } = useResource<UserProfile>("users", 1)
+
   useEffect(() => {
     document.title = "Berkat Wahyu Purba | Java Software Engineer";
 
@@ -40,15 +46,34 @@ export default function HomePage(){
     <div className="bg-gray-50 min-h-screen">
       <Navbar />
       <div className="container-custom">
-        <Hero />
+        {isLoading || !profileResponse ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Hero profile={profileResponse} />
+        )}
         <AboutSection />
         <SkillsSection />
         <ExperienceSection />
         <ProjectsSection />
         <EducationSection />
-        <ContactSection />
+        {isLoading || !profileResponse ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ) : (
+          <ContactSection profile={profileResponse} />
+        )}
       </div>
-      <Footer />
+
+      {isLoading || !profileResponse ? (
+        <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      ) : (
+        <Footer profile={profileResponse} />
+      )}
     </div>
   );
 }

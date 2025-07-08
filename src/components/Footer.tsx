@@ -1,8 +1,10 @@
 'use client';
 
+import { useResource } from "@/hooks/public/use-resource";
+import { UserProfile } from "@/types/user-profile";
 import { Github, Linkedin, Mail, Phone } from "lucide-react";
 
-export function Footer() {
+export function Footer({ profile }: { profile: UserProfile }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -18,7 +20,7 @@ export function Footer() {
 
           <div className="flex space-x-4">
             <a
-              href="https://linkedin.com/in/wahyu-purba-439167a7/"
+              href={profile?.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-300 hover:text-white transition-colors"
@@ -27,7 +29,7 @@ export function Footer() {
               <Linkedin size={20} />
             </a>
             <a
-              href="https://github.com"
+              href={profile?.githubUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-300 hover:text-white transition-colors"
@@ -36,14 +38,14 @@ export function Footer() {
               <Github size={20} />
             </a>
             <a
-              href="mailto:wahyu.sbb@gmail.com"
+              href={`mailto:${profile?.email}`}
               className="text-gray-300 hover:text-white transition-colors"
               aria-label="Email"
             >
               <Mail size={20} />
             </a>
             <a
-              href="tel:+6281287756784"
+              href={`tel:${profile?.phone}`}
               className="text-gray-300 hover:text-white transition-colors"
               aria-label="Phone"
             >
@@ -53,7 +55,7 @@ export function Footer() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-700 text-center text-gray-400">
-          <p>&copy; {currentYear} Berkat Wahyu Purba. All rights reserved.</p>
+          <p>&copy; {currentYear} {`${profile?.fullname}`}. All rights reserved.</p>
         </div>
       </div>
     </footer>

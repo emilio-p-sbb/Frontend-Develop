@@ -6,9 +6,7 @@ const privateAxios = axios.create({
   baseURL: "",
   withCredentials: true, // Ini penting untuk mengirim cookies
   timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // headers: {"Content-Type": "application/json",},
 })
 
 // Interceptor REQUEST – inject Authorization header
@@ -72,7 +70,11 @@ export async function apiRequest<T>(
 
   const headers: Record<string, string> = {};
 
+  const condition = (data instanceof FormData)
+  console.log('condition = '+condition)
+
   if (!(data instanceof FormData)) {
+    console.log('content typeee')
     headers["Content-Type"] = "application/json";
   }
 

@@ -4,10 +4,12 @@
 
 // --- Tipe data baru untuk Profile ---
 export interface UserProfile {
-  id: string;
+  userId: number;
   fullname: string;
+  gender: string;
   email: string;
-  avatar?: string | File;
+  profileAvatar: string;
+  // avatar?: string | File;
   role: string;
   bio?: string;
   phone?: string;

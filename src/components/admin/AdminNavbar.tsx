@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Bell, LogOut, Search, User, Menu, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from 'next-auth/react';
 import Link from "next/link";
+import { useResources } from "@/hooks/private/use-resource";
+import { Message } from "@/types/message";
 
 interface UserProps {
   username: string;
@@ -31,6 +33,11 @@ interface AdminNavbarProps {
 export default function AdminNavbar({ onToggleSidebar, user, onSearch }: AdminNavbarProps) {
 
   const { data: session, status } = useSession();
+
+  const { data: initialMessages, isLoading: isLoadingAll, error: errorAll } = useResources<Message[]>("messages");
+    const totalUnreadCount = useMemo(() => {
+        return initialMessages?.data?.filter(msg => !msg.read).length ?? 0;
+      }, [initialMessages]);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -85,10 +92,19 @@ export default function AdminNavbar({ onToggleSidebar, user, onSearch }: AdminNa
             </Button>
           </Link>
 
-          <Button variant="ghost" size="icon" className="relative">
+          <Link href="/admin/messages">
+            <Button variant="ghost" size="icon" className="relative hover:bg-portfolio-light-blue/10">
+              <Bell size={20} />
+              {totalUnreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </Button>
+          </Link>
+
+          {/* <Button variant="ghost" size="icon" className="relative">
             <Bell size={20} />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </Button>
+          </Button> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

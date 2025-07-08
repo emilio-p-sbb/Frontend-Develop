@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useContentStore } from "@/stores/contentStore";
+import { useResource } from "@/hooks/public/use-resource";
+import { UserProfile } from "@/types/user-profile";
 
-export function Hero() {
-  const { hero, profile } = useContentStore();
+export function Hero({ profile }: { profile: UserProfile }) {
+  const { hero } = useContentStore();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -44,19 +46,20 @@ export function Hero() {
       <div className="container-custom relative z-10">
         <div className="text-center max-w-4xl mx-auto">
           <div className="animate-fadeInUp">
-            {hero.showProfilePhoto && profile.avatar && (
+            {hero.showProfilePhoto && (
               <div className="mb-8 flex justify-center">
                 <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-white shadow-xl">
                   <AvatarImage
-                    src={profile.avatar}
-                    alt={profile.name}
+                    src={
+                      profile?.profileAvatar
+                        ? `data:image/png;base64,${profile?.profileAvatar}`
+                        : undefined
+                    }
+                    alt={profile?.fullname || "Profile Avatar"}
                     className="object-cover"
                   />
                   <AvatarFallback className="text-2xl md:text-3xl font-bold bg-portfolio-navy text-white">
-                    {profile.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {profile?.fullname?.charAt(0).toUpperCase() || "JD"}
                   </AvatarFallback>
                 </Avatar>
               </div>

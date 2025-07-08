@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -79,7 +79,9 @@ export default function ProjectList() {
     };
   
     if (isLoadingAll || isLoadingSearch) {
-      return <p className="text-center py-10 text-gray-500">Loading projects...</p>;
+      return <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>;
     }
   
     if (errorAll || errorSearch) {

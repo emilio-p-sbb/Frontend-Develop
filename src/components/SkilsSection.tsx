@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useResources } from "@/hooks/public/use-resource";
+import { Loader2 } from "lucide-react";
 
 interface SkillCategory {
   category: string;
@@ -17,7 +18,9 @@ export function SkillsSection() {
   const { data: skillsData, isLoading: isLoadingAll, error: errorAll } = useResources<SkillCategory[]>("skills/public");
 
   if (isLoadingAll) {
-    return <div className="text-center py-10">Loading skills...</div>;
+    return <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>;
   }
 
   if (errorAll) {

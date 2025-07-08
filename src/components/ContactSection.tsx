@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, Linkedin, Github, MapPin, Download, Facebook } from "lucide-react";
-import { useContentStore } from "@/stores/contentStore";
 import { z } from "zod";
 import { useCreateResource } from "@/hooks/public/use-create-resource";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UserProfile } from "@/types/user-profile";
 
 const messageSchema = z.object({
   from: z.string().min(1, "From is required"),
@@ -22,9 +22,9 @@ const messageSchema = z.object({
 
 type MessageFormData = z.infer<typeof messageSchema>;
 
-export function ContactSection() {
+export function ContactSection({ profile }: { profile: UserProfile }) {
   const { toast } = useToast();
-  const { profile } = useContentStore();
+  // const { profile } = useContentStore();
 
   const { mutate: send, isPending: isCreating } = useCreateResource<MessageFormData>("messages");
 
@@ -62,10 +62,10 @@ export function ContactSection() {
   };
 
   const socialLinks = [
-    { icon: Linkedin, href: profile.linkedin, label: "LinkedIn", color: "hover:text-blue-600" },
-    { icon: Github, href: profile.github, label: "GitHub", color: "hover:text-gray-800" },
+    { icon: Linkedin, href: profile?.linkedinUrl, label: "LinkedIn", color: "hover:text-blue-600" },
+    { icon: Github, href: profile?.githubUrl, label: "GitHub", color: "hover:text-gray-800" },
     { icon: Facebook, href: "https://facebook.com", label: "Facebook", color: "hover:text-blue-600" },
-    { icon: Mail, href: `https://wa.me/6281287756784`, label: "WhatsApp", color: "hover:text-green-600" }
+    { icon: Mail, href: `https://wa.me/${profile?.phone}`, label: "WhatsApp", color: "hover:text-green-600" }
   ];
 
   return (

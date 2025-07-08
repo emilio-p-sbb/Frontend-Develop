@@ -12,7 +12,8 @@ import {
   LineChart,
   TrendingUp,
   MessageCircle,
-  LucideIcon // Penting: Impor LucideIcon jika Anda menggunakan TypeScript untuk tipe
+  LucideIcon, // Penting: Impor LucideIcon jika Anda menggunakan TypeScript untuk tipe
+  Loader2
 } from "lucide-react"; // <-- Impor semua ikon di sini!
 import { useAdminStore } from "@/stores/adminStore";
 import Link from "next/link";
@@ -61,6 +62,12 @@ export default function DashboardClient() {
     document.title = "Admin Dashboard | Portfolio";
     setActiveSection('dashboard');
   }, [setActiveSection]);
+
+  if (isLoadingAll) {
+    return <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>;
+  }
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -80,7 +80,9 @@ export default function SkillList() {
   };
 
   if (isLoadingAll || isLoadingSearch) {
-    return <p className="text-center py-10 text-gray-500">Loading skills...</p>;
+    return <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>;
   }
 
   if (errorAll || errorSearch) {

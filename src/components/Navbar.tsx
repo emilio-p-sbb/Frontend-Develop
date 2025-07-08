@@ -44,7 +44,7 @@ export function Navbar() {
         <div className="flex justify-between items-center">
           <h1
             className="text-xl md:text-2xl font-bold cursor-pointer text-portfolio-navy"
-            onClick={() => scrollTo("hero")}
+            onClick={() => scrollTo("home")}
           >
             BW<span className="text-portfolio-light-blue">.dev</span>
           </h1>

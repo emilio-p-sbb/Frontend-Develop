@@ -25,6 +25,8 @@ export const useUpdateMultipartResource = <T extends object>(
       const formData = toFormData(data, jsonKey, fileFields);
       return resourceRouter.updateMultipart(formData as FormData);
     },
+    // Kalau mau support langsung kirim FormData manual, hapus komentar di bawah ini
+    // mutationFn: (formData: FormData) => resourceRouter.updateMultipart(formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [resource] });
       toast({
@@ -41,3 +43,40 @@ export const useUpdateMultipartResource = <T extends object>(
     },
   });
 };
+
+
+// export const useUpdateMultipartResource = <T extends object>(
+//   resource: string,
+//   options?: UseUpdateMultipartResourceOptions<T>
+// ) => {
+//   const queryClient = useQueryClient();
+//   const { toast } = useToast();
+//   const resourceRouter = createPrivateResourceRouter<T>(resource);
+
+//   const jsonKey = options?.jsonKey ?? "data";
+//   const fileFields = options?.fileFields ?? [];
+
+//   return useMutation({
+//     mutationFn: (formData: FormData) => {
+//       return resourceRouter.updateMultipart(formData);
+//     },
+//     // mutationFn: (data: T) => {
+//     //   const formData = toFormData(data, jsonKey, fileFields);
+//     //   return resourceRouter.updateMultipart(formData as FormData);
+//     // },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: [resource] });
+//       toast({
+//         title: "Success",
+//         description: `${resource} updated successfully`,
+//       });
+//     },
+//     onError: (error: Error) => {
+//       toast({
+//         title: "Error",
+//         description: `Failed to update ${resource}: ${error.message}`,
+//         variant: "destructive",
+//       });
+//     },
+//   });
+// };

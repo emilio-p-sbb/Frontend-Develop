@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Github, FileText, Eye } from "lucide-react";
+import { ExternalLink, Github, FileText, Eye, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useResources } from "@/hooks/public/use-resource";
 
@@ -75,7 +75,9 @@ export function ProjectsSection() {
   };
 
   if (isLoadingAll) {
-    return <div className="text-center py-10">Loading projects...</div>;
+    return <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>;
   }
 
   if (errorAll) {
